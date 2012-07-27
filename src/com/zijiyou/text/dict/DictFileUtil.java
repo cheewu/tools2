@@ -35,18 +35,17 @@ public class DictFileUtil {
 		return wordSet;
 	}
 
-	public static Map<String, Integer> getDictMap(String file) {
+	public static Map<String, Integer> getDictMap(String file,String split) {
 		Map<String, Integer> wordMap = new HashMap<String, Integer>();
 		try {
 			BufferedReader in = new BufferedReader(new FileReader(file));
 			String line = null;
 			while ((line = in.readLine()) != null) {
-				String[] segs = line.split("  ");
+				String[] segs = line.split(split);
 				if (segs.length < 2) {
 					System.out.println(line);
 					continue;
 				}
-
 				wordMap.put(segs[0], Integer.parseInt(segs[1]));
 			}
 		} catch (Exception e) {
@@ -61,7 +60,7 @@ public class DictFileUtil {
 		MongoConnector mgc = new MongoConnector("analyzer.properties",
 				"mongo_tripfm");
 		DBCollection kwColl = mgc.db.getCollection("Keyword");
-		Map<String, Integer> allMap = getDictMap("/Users/cheewu/Desktop/travel_tf.txt");
+		Map<String, Integer> allMap = getDictMap("/Users/cheewu/Desktop/travel_tf.txt"," ");
 		allMap = MapUtil.sortByValue(allMap);
 		DBCursor kwcur = kwColl.find();
 
@@ -85,13 +84,49 @@ public class DictFileUtil {
 
 	}
 
+	
+	private static void updateKeywordTF(String tfFile){
+		
+		Map<String,Integer> tfMap=getDictMap(tfFile,",");
+		MongoConnector mgc = new MongoConnector("analyzer.properties",
+				"mongo_tripfm");
+		DBCollection kwColl = mgc.db.getCollection("keywordMap");
+		DBCursor kwcur=kwColl.find();
+		Set<String> kwset=new HashSet<String>();
+
+		while(kwcur.hasNext()){
+			String kw=kwcur.next().get("name").toString();
+			if(kwset.contains(kw)){
+				System.out.println("Duplicate kw in db"+kw);
+				
+			}else
+				kwset.add(kw);
+		}
+		
+		for(Map.Entry<String, Integer> entry: tfMap.entrySet()){
+			String key=entry.getKey();
+			if(!kwset.contains(key)){
+				System.out.println("Not exist: "+ key);
+				continue;
+			}
+				
+			Integer count=entry.getValue();
+			Double idf=Math.log(5000000/count);
+			System.out.println(key+"  "+idf);
+			BasicDBObject dbo=new BasicDBObject().append("$set",new BasicDBObject("idf",idf) );
+			kwColl.update(new BasicDBObject().append("name", key), dbo);
+		}
+		
+	}
+	
+	
+	
 	public static void analyzerResult(String file) throws IOException {
 		Set<String> DictMap = getDict(file, " ");
 		FileWriter fw = new FileWriter("tmp.txt");
 		for (String kw : DictMap) {
 
 			String firstchar = kw.substring(0, 1);
-
 			if (firstchar.getBytes().length == 1) {
 				if (kw.startsWith("") && !kw.startsWith("FOOD")) {
 					System.out.println(kw.substring(1));
@@ -132,9 +167,7 @@ public class DictFileUtil {
 			}
 
 		}
-
 		mgc.close();
-
 	}
 
 	public static void appendDict(String filename, String category) {
@@ -176,10 +209,13 @@ public class DictFileUtil {
 
 	public static void main(String args[]) {
 
+		//System.out.println(Math.log(2));
+		System.out.println("Usage: DicttFileUtil <tf file> " );
 		try {
+			updateKeywordTF("travel_tf.txt");
 			// checkKeyword();
 			// analyzerResult("append_wiki.txt");
-			appendDict("append_prod.txt", "product");
+			//appendDict("append_prod.txt", "product");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

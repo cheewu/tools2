@@ -23,7 +23,7 @@ public class FragmentSearcher {
 		}
 	
 		DB db = m.getDB("page");
-		char pw[] = "iamgo2010".toCharArray();
+		char pw[] = "iamgo201110".toCharArray();
 		db.authenticate("cheewu", pw);
 		
 		System.out.println("begin to proscess");

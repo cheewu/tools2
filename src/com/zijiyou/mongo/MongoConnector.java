@@ -4,9 +4,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -19,17 +16,12 @@ public class MongoConnector {
 	private static final Logger LOG = Logger.getLogger(MongoConnector.class);
 	private Mongo mongo;
 	public DB db;
-//	private static Map<String, Mongo> MONGOCACHE = Collections
-//			.synchronizedMap(new HashMap<String, Mongo>());
 
 	public MongoConnector(String host, int port) {
-//		synchronized (MONGOCACHE) {
-//			mongo = MONGOCACHE.get(host + port);
 			if (mongo == null) {
 				if (LOG.isInfoEnabled())
 					LOG.info("Mongo not exist ,try to build one new connection！");
 				mongo = MongoConnector.buildConnection(host, port);
-				//MONGOCACHE.put(host + port, mongo);
 			}
 		
 	}

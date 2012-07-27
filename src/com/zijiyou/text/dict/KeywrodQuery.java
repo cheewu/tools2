@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -21,57 +22,92 @@ public class KeywrodQuery {
 
 		return keywordCategoryMap.get(kw);
 	}
-	
-	
-	public static boolean isPOI(int keyword){
-		return (keyword>DictGenerator.CAT_REGION_MAX && keyword<DictGenerator.CAT_POI_MAX);
-		
+
+	public static boolean isPOI(int keyword) {
+		return (keyword > DictGenerator.CAT_REGION_MAX && keyword < DictGenerator.CAT_POI_MAX);
+
 	}
 
 	public static String getKeywordCategoryName(String kw) {
 		Integer category = getKeywordCategory(kw);
-		if(category==null){
+		if (category == null) {
 			return "other";
 		}
-		
+
 		String categir = "other";
 		switch (category) {
-		case DictGenerator.CAT_AIRPORT:
+		case DictGenerator.CAT_AIRPORT: {
 			categir = "airport";
-		case DictGenerator.CAT_ATTRACTION:
+			break;
+		}
+		case DictGenerator.CAT_ATTRACTION: {
 			categir = "attraction";
-		case DictGenerator.CAT_COUNTRY:
+			break;
+		}
+		case DictGenerator.CAT_COUNTRY: {
 			categir = "country";
-		case DictGenerator.CAT_DESTINATION:
+			break;
+		}
+		case DictGenerator.CAT_DESTINATION: {
 			categir = "destination";
-		case DictGenerator.CAT_FOOD:
+			break;
+		}
+		case DictGenerator.CAT_FOOD: {
 			categir = "food";
-		case DictGenerator.CAT_HISTORY:
+			break;
+		}
+		case DictGenerator.CAT_HISTORY: {
 			categir = "history";
-		case DictGenerator.CAT_ITEM:
+			break;
+		}
+		case DictGenerator.CAT_ITEM: {
 			categir = "item";
-		case DictGenerator.CAT_NOTE:
+			break;
+		}
+		case DictGenerator.CAT_NOTE: {
 			categir = "note";
-		case DictGenerator.CAT_ORGANIZATION:
+			break;
+		}
+		case DictGenerator.CAT_ORGANIZATION: {
 			categir = "organization";
-		case DictGenerator.CAT_OTHER:
+			break;
+		}
+		case DictGenerator.CAT_OTHER: {
 			categir = "other";
-		case DictGenerator.CAT_PEOPLE:
+			break;
+		}
+		case DictGenerator.CAT_PEOPLE: {
 			categir = "people";
-		case DictGenerator.CAT_POI_OTHER:
+			break;
+		}
+		case DictGenerator.CAT_POI_OTHER: {
 			categir = "poi_other";
-		case DictGenerator.CAT_PRODUCT:
+			break;
+		}
+		case DictGenerator.CAT_PRODUCT: {
 			categir = "product";
-		case DictGenerator.CAT_PROVINCE:
+			break;
+		}
+		case DictGenerator.CAT_PROVINCE: {
 			categir = "province";
-		case DictGenerator.CAT_SHOPPING:
+			break;
+		}
+		case DictGenerator.CAT_SHOPPING: {
 			categir = "shopping";
-		case DictGenerator.CAT_SUBATTRACTION:
+			break;
+		}
+		case DictGenerator.CAT_SUBATTRACTION: {
 			categir = "subattraction";
-		case DictGenerator.CAT_SUBWAY:
+			break;
+		}
+		case DictGenerator.CAT_SUBWAY: {
 			categir = "subway";
-		case DictGenerator.CAT_TRAIN:
+			break;
+		}
+		case DictGenerator.CAT_TRAIN: {
 			categir = "train";
+			break;
+		}
 		case DictGenerator.CAT_TRANSPORTATION:
 			categir = "transportation";
 
@@ -92,37 +128,41 @@ public class KeywrodQuery {
 		MongoConnector mgc = new MongoConnector("analyzer.properties",
 				"mongo_tripfm");
 		DBCollection kw = mgc.db.getCollection(collection);
-		
+
 		DBCursor kwCur = kw.find();
 		Map<String, Integer> resultMap = new HashMap<String, Integer>();
 		while (kwCur.hasNext()) {
 			DBObject dbo = kwCur.next();
 			String key = dbo.get("name").toString();
-			
 			if (key.length() < 2) {
 				System.out.println(dbo);
 				continue;
 			}
 			if (!resultMap.containsKey(key)) {
+
+				String category = dbo.get("category").toString();
+				if (category.matches("\\d*"))
 					resultMap.put(key,
-							Integer.parseInt(dbo.get("category").toString()));	
+							Integer.parseInt(dbo.get("category").toString()));
+				else
+					resultMap.put(key, 9999);
 			}
 		}
+
 		mgc.close();
 		return resultMap;
 
 	}
-	
-	
-	public static void writeTravelKeyword(String file) throws IOException{
-		Map<String,Integer> keywordCategoryMap= dumpKeywordCategoryMap("keywordMap");
-		FileWriter fw=new FileWriter(file);
-		for(Map.Entry<String, Integer> entry: keywordCategoryMap.entrySet()){
-			fw.write(entry.getKey()+"\n");
+
+	public static void writeTravelKeyword(String file) throws IOException {
+		Map<String, Integer> keywordCategoryMap = dumpKeywordCategoryMap("keywordMap");
+		FileWriter fw = new FileWriter(file);
+		for (Map.Entry<String, Integer> entry : keywordCategoryMap.entrySet()) {
+			fw.write(entry.getKey() + "\n");
 			fw.flush();
 		}
 		fw.close();
-		
+
 	}
 
 	private static Map<String, String> dumpKeywordParentMap() {
@@ -146,25 +186,22 @@ public class KeywrodQuery {
 
 	/**
 	 * @param args
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static void main(String[] args) throws IOException {
-		Map<String,Integer> keywordMap=dumpKeywordCategoryMap("keywordMap2");
-		
-		Map<String,Integer> keywordMap2=dumpKeywordCategoryMap("keywordMap");
-		
-		for(String kw: keywordMap.keySet()){
-			if(!keywordMap2.containsKey(kw))
-				System.out.println(kw);
-			
-		}
-		
-		
-		
-		
+		// Map<String,Integer> keywordMap=dumpKeywordCategoryMap("keywordMap2");
+
+		Map<String, Integer> keywordMap2 = dumpKeywordCategoryMap("keywordMap");
+
+		// for(String kw: keywordMap.keySet()){
+		// if(!keywordMap2.containsKey(kw))
+		// System.out.println(kw);
+		//
+		// }
+
 		// TODO Auto-generated method stub
-		//writeTravelKeyword("wordstravel.dic");
-		//System.out.println(getKeywordCategory("法院"));
+		// writeTravelKeyword("wordstravel.dic");
+		// System.out.println(getKeywordCategory("法院"));
 	}
 
 }

@@ -33,6 +33,8 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.Mongo;
 import com.mongodb.MongoException;
+import com.zijiyou.common.MapUtil;
+import com.zijiyou.mongo.MongoConnector;
 
 public class KeywordTFGenerator {
 
@@ -43,31 +45,33 @@ public class KeywordTFGenerator {
 	
 	public static void main(String[] args) {
 		
+		if(args.length<3){
+			System.out.println("Usage: KeywordTFGenerator <DictPath>  <WordCandidatePath> <OutPutFile>");
+			System.exit(0);
+		}
+		String dictPath=args[0];
+		String candidateFile=args[1];
+		String outputFile=args[2];
+		
+		
 		Analyzer analyzer =new ComplexAnalyzer(Dictionary.getInstance
-				("dict"));
+				(dictPath));
 		Map<String,Integer> occuredMap=new HashMap<String,Integer>();
 		
-		Mongo m = null;
-		try {
-			m = new Mongo("dev.zijiyou.com", 27017);
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (MongoException e) {
-			e.printStackTrace();
-		}
+		MongoConnector mgc=new MongoConnector(
+				"analyzer.properties", "mongo_article");
+
+		DB db=mgc.db;
 		
-		DB db = m.getDB("page");
-		db.authenticate("cheewu", "iamgo2010".toCharArray());
 		int i=0;
 		BufferedReader in;
 		try {
 			in = new BufferedReader(new FileReader
-					   ("dict/words_travel.dic"));
+					   (candidateFile));
 			String line=null;
 			
 			while((line=in.readLine())!=null){
 				if (line.trim().length()<2||wordSet.contains(line)){
-					//System.out.println(line);
 					continue;
 				}
 				wordSet.add(line.trim());
@@ -79,7 +83,7 @@ public class KeywordTFGenerator {
 			e.printStackTrace();
 		}
 
-		System.out.println("旅游词条总数:"+ i);
+		System.out.println("词条总数:"+ i);
 		
 		DBCollection articleColl = db.getCollection("Article");
 		DBCursor articleCur = articleColl.find();
@@ -88,6 +92,10 @@ public class KeywordTFGenerator {
 		
 		int j=0;
 		while (articleCur.hasNext()) {
+			if(++j%10000==0){
+				System.out.println("Documents "+j+" Finished!");
+			}
+			
 			DBObject document = articleCur.next();
 			Set<String> documentWordSet=tokenizeParagraph(analyzer, document.get("content").toString());
 			Iterator<String> wordIter=documentWordSet.iterator();
@@ -99,16 +107,13 @@ public class KeywordTFGenerator {
 					occuredMap.put(word,occur);
 				}else
 					occuredMap.put(word, new Integer(1));
-				
 			}
-			j++;
 		}
 		
-		Map<String,Integer> sorted_map=sortByValue(occuredMap);
-
+		Map<String,Integer> sorted_map=MapUtil.sortByValue(occuredMap);
         
         try {
-			FileWriter fw=new FileWriter("travel_tf.txt");
+			FileWriter fw=new FileWriter(outputFile);
 			for (Map.Entry<String, Integer> entry : sorted_map.entrySet()) {
 				fw.write(entry.getKey() + ","+entry.getValue()+","+KeywrodQuery.getKeywordCategoryName(entry.getKey())+"\n");
 				fw.flush();
@@ -122,22 +127,7 @@ public class KeywordTFGenerator {
        
 	}
 	
-	public static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(
-			Map<K, V> map) {
-		List<Map.Entry<K, V>> list = new LinkedList<Map.Entry<K, V>>(
-				map.entrySet());
-		Collections.sort(list, new Comparator<Map.Entry<K, V>>() {
-			public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {
-				return (o2.getValue()).compareTo(o1.getValue());
-			}
-		});
-
-		Map<K, V> result = new LinkedHashMap<K, V>();
-		for (Map.Entry<K, V> entry : list) {
-			result.put(entry.getKey(), entry.getValue());
-		}
-		return result;
-	}
+	
 	
 	
 	private static Set<String> tokenizeParagraph( Analyzer analyzer,String content) {

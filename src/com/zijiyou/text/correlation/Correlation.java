@@ -1,6 +1,7 @@
 package com.zijiyou.text.correlation;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,11 +18,10 @@ import com.zijiyou.common.MapUtil;
 import com.zijiyou.mongo.MongoConnector;
 import com.zijiyou.text.dict.DictGenerator;
 import com.zijiyou.text.dict.KeywrodQuery;
-import com.zijiyou.text.dict.WordGenerator;
-import com.zijiyou.text.fragment.Fragmentizer;
 public class Correlation {
+	
 
-	private static final Logger LOG = Logger.getLogger(Fragmentizer.class);
+	private static final Logger LOG = Logger.getLogger(Correlation.class);
 	private static HashMap<Integer,List<Integer>> keywordInvertIndex=new HashMap<Integer, List<Integer>>();
 	private static HashMap<Integer,List<Integer>> paragraphKeyword=new HashMap<Integer,List<Integer>>();
 	private static Map<Integer,Integer>  keywordCountMap=null;
@@ -108,7 +108,7 @@ public class Correlation {
 		System.out.println("Build index finished...");
 	}
 	
-	public static void analyzerRelation() throws IOException{
+	public static void analyzerRelation(int minOccur,int minRatio,boolean insert) throws IOException{
 		DBCollection correlationColl = db.getCollection("correlation");
 		FileWriter fw=new FileWriter("correlations.txt");
 		int j=0;
@@ -142,29 +142,31 @@ public class Correlation {
 					}
 				}
 				
-				// 计算candidatemap中的关键词在包含kw的关键词的文档中出现的比例 这个比例要比关键词在整个文档中出现的比例高2倍;
-				//Set<Integer> todelSet=new HashSet<Integer>();
+				// 计算candidatemap中的关键词在包含kw的关键词的文档中出现的比例 这个比例要比关键词在整个文档中出现的比例高MINRATIO倍;
 				Map<Integer,Double> candidateScoreMap=new HashMap<Integer,Double>();
 				
 				for(Map.Entry<Integer, Integer> entry: candidateMap.entrySet()){
 					Integer kwcandidate=entry.getKey();
 					Integer kwcandidateCount=entry.getValue();
-					if (kwcandidateCount<10){
+					if (kwcandidateCount<minOccur){
 						continue;
 					}
-					double baseratio= (double)keywordCountMap.get(kwcandidate)/500;
-					double joinratio=((double)kwcandidateCount*10000)/(double)keywordCountMap.get(kw);
 					
-					fw.write(getStringbyID(kw)+","+getStringbyID(kwcandidate)+","+kwcandidateCount+","+baseratio+","+
-					joinratio+","+KeywrodQuery.getKeywordCategory(getStringbyID(kwcandidate))+"\n");
+					double baseratio= (double)keywordCountMap.get(kwcandidate)/(500);
+					double joinratio=((double)10000*kwcandidateCount/(double)keywordCountMap.get(kw));
 					
+					NumberFormat  ddf1=NumberFormat.getNumberInstance();
+					ddf1.setMaximumFractionDigits(2);
 					
-					if(joinratio>2*baseratio){
-						double score=Math.sqrt(kwcandidateCount)*Math.log(joinratio/baseratio);
+                    if(joinratio>minRatio*baseratio){
+						fw.write(getStringbyID(kw)+", "+getStringbyID(kwcandidate)+" ,"+kwcandidateCount+" ,"+ddf1.format(baseratio)+" ,"+
+                                ddf1.format(joinratio)+" ,"+KeywrodQuery.getKeywordCategory(getStringbyID(kwcandidate))+"\n");
+						fw.flush();
+						double score= Math.sqrt(kwcandidateCount)*Math.log(joinratio/baseratio);
 						candidateScoreMap.put(kwcandidate, score);
 					}
 				}
-
+				
 				
 				Map<Integer,Double> sortedCandidateMap=MapUtil.sortByValue(candidateScoreMap);
 				
@@ -188,11 +190,13 @@ public class Correlation {
 				
 				if(categoryCorrelationMap.size()==0)
 					continue;
-					
-				BasicDBObject dbo=new BasicDBObject();
-				dbo.append("name",getStringbyID(kw));
-				dbo.append("correlation",categoryCorrelationMap);
-				correlationColl.insert(dbo);
+				if(insert){
+					BasicDBObject dbo=new BasicDBObject();
+					dbo.append("name",getStringbyID(kw));
+					dbo.append("correlation",categoryCorrelationMap);
+					correlationColl.insert(dbo);
+				
+				}
 			}
 			
 		}
@@ -206,10 +210,22 @@ public class Correlation {
 	 */
 	public static void main(String[] args) {
 		
+		
+		if(args.length<3){
+			System.out.println("Usage Correlation <MinOccur> <MinRatio> <isInsert>");
+			System.exit(0);
+		}
+		Integer occur=Integer.parseInt(args[0]);
+		Integer ratio=Integer.parseInt(args[1]);
+		boolean insert=false;
+		if (args[2].equals("true")){
+			insert=true;
+		}
+		
 		db=MongoConnector.getDBByProperties("analyzer.properties","mongo_article");
 		buildIndex();
 		try {
-			analyzerRelation();
+			analyzerRelation(occur,ratio,insert);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -57,7 +57,7 @@ public class DictGenerator {
 	private Map<String, BasicDBObject> initRegion() {
 		Map<String, BasicDBObject> regionkwMap = new HashMap<String, BasicDBObject>();
 
-		DB db = mgc.db;
+		DB db = mgc.getDB();
 		DBCollection regionColl = db.getCollection("Region");
 		BasicDBObject regionQuery = new BasicDBObject();
 		String regioncategories[] = new String[] { "country", "province",
@@ -114,7 +114,7 @@ public class DictGenerator {
 		// 初始化POI
 		Map<String, BasicDBObject> poikwMap = new HashMap<String, BasicDBObject>();
 
-		DBCollection poiColl = mgc.db.getCollection("POI");
+		DBCollection poiColl = mgc.getDB().getCollection("POI");
 		BasicDBObject query = new BasicDBObject();
 		query.put("category", "airport");
 		DBCursor poiCur = poiColl.find();
@@ -213,7 +213,7 @@ public class DictGenerator {
 
 		Map<String, BasicDBObject> kwmap = new HashMap<String, BasicDBObject>();
 
-		DBCollection kwColl = mgc.db.getCollection("Keyword");
+		DBCollection kwColl = mgc.getDB().getCollection("Keyword");
 		BasicDBObject query = new BasicDBObject();
 		String categories[] = new String[] { "food", "note", "item" ,"organization","other","people","product"};
 		query.put("category", new BasicDBObject("$in", categories));
@@ -280,7 +280,7 @@ public class DictGenerator {
 	
 	private void initRegionPOIKeyword() throws IOException{
 		
-		DBCollection kwColl = mgc.db.getCollection("keywordMap");
+		DBCollection kwColl = mgc.getDB().getCollection("keywordMap");
 
 		Map<String, BasicDBObject> docmap = this.initRegion();
 		System.out.println("region size:"+ docmap.size());
@@ -304,7 +304,7 @@ public class DictGenerator {
 	private  void initKeywordParentMap() throws IOException{
 //		this.initRegion();
 //		this.initPOI();
-		DBCollection kwparentcoll=this.mgc.db.getCollection("keyParentMap");
+		DBCollection kwparentcoll=this.mgc.getDB().getCollection("keyParentMap");
 		for (Map.Entry<String, String> entry: this.parentMap.entrySet()){
 			kwparentcoll.insert(new BasicDBObject().append("key", entry.getKey()).append("parent",entry.getValue()));
 		}

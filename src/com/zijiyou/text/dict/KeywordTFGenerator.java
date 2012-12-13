@@ -61,7 +61,7 @@ public class KeywordTFGenerator {
 		MongoConnector mgc=new MongoConnector(
 				"analyzer.properties", "mongo_article");
 
-		DB db=mgc.db;
+		DB db=mgc.getDB();
 		
 		int i=0;
 		BufferedReader in;

@@ -57,9 +57,9 @@ public class DictFileUtil {
 
 	public static void removeRareKeyword() {
 
-		MongoConnector mgc = new MongoConnector("analyzer.properties",
-				"mongo_tripfm");
-		DBCollection kwColl = mgc.db.getCollection("Keyword");
+		MongoConnector mgc=new MongoConnector("analyzer.properties",
+				"mongo_article");
+		DBCollection kwColl = mgc.getDB().getCollection("Keyword");
 		Map<String, Integer> allMap = getDictMap("/Users/cheewu/Desktop/travel_tf.txt"," ");
 		allMap = MapUtil.sortByValue(allMap);
 		DBCursor kwcur = kwColl.find();
@@ -90,7 +90,7 @@ public class DictFileUtil {
 		Map<String,Integer> tfMap=getDictMap(tfFile,",");
 		MongoConnector mgc = new MongoConnector("analyzer.properties",
 				"mongo_tripfm");
-		DBCollection kwColl = mgc.db.getCollection("keywordMap");
+		DBCollection kwColl = mgc.getDB().getCollection("keywordMap");
 		DBCursor kwcur=kwColl.find();
 		Set<String> kwset=new HashSet<String>();
 
@@ -153,7 +153,7 @@ public class DictFileUtil {
 		Map<String, DBObject> kwMap = new HashMap<String, DBObject>();
 		MongoConnector mgc = new MongoConnector("analyzer.properties",
 				"mongo_tripfm");
-		DBCollection kwColl = mgc.db.getCollection("Keyword");
+		DBCollection kwColl = mgc.getDB().getCollection("Keyword");
 		BasicDBObject query = new BasicDBObject().append("is_del", false);
 		DBCursor dbs = kwColl.find();
 		while (dbs.hasNext()) {
@@ -175,7 +175,7 @@ public class DictFileUtil {
 		
 		MongoConnector mgc = new MongoConnector("analyzer.properties",
 				"mongo_tripfm");
-		DBCollection kwColl = mgc.db.getCollection("Keyword");
+		DBCollection kwColl = mgc.getDB().getCollection("Keyword");
 
 		BasicDBObject query = new BasicDBObject().append("is_del", false);
 		DBCursor dbs = kwColl.find();

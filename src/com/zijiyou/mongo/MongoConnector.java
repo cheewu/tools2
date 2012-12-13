@@ -15,18 +15,19 @@ public class MongoConnector {
 
 	private static final Logger LOG = Logger.getLogger(MongoConnector.class);
 	private Mongo mongo;
-	public DB db;
+	private DB db;
 
 	public MongoConnector(String host, int port) {
-			if (mongo == null) {
-				if (LOG.isInfoEnabled())
-					LOG.info("Mongo not exist ,try to build one new connection！");
-				mongo = MongoConnector.buildConnection(host, port);
-			}
-		
+		if (mongo == null) {
+			if (LOG.isInfoEnabled())
+				LOG.info("Mongo not exist ,try to build one new connection！");
+			mongo = MongoConnector.buildConnection(host, port);
+		}
+
 	}
 
 	public MongoConnector(String propsPath, String dbProperty) {
+
 		Properties props = new Properties();
 		FileInputStream fis;
 		try {
@@ -45,7 +46,7 @@ public class MongoConnector {
 		String mongoUser = props.getProperty("mongo_user");
 		String mongoPasswd = props.getProperty("mongo_passwd");
 		String mongodb = props.getProperty(dbProperty);
-
+		boolean auth = Boolean.parseBoolean(props.getProperty("mongo_auth"));
 		if (mongo == null) {
 			if (LOG.isInfoEnabled())
 				LOG.info("Mongo not exist ,try to build one new connection！");
@@ -53,49 +54,29 @@ public class MongoConnector {
 		}
 
 		DB db = mongo.getDB(mongodb);
-		
-		if (db.isAuthenticated()) {
-			this.db = db;
+		this.db = db;
 
-		} else {
-			boolean login = db.authenticate(mongoUser,
-					mongoPasswd.toCharArray());
-			if (login)
+		if (auth) {
+			if (db.isAuthenticated()) {
 				this.db = db;
-			else {
-				this.db = null;
+
+			} else {
+				boolean login = db.authenticate(mongoUser,
+						mongoPasswd.toCharArray());
+				if (login)
+					this.db = db;
+				else {
+					this.db = null;
+				}
 			}
+
 		}
+
 	}
 
-	public static DB getDBByProperties(String propsPath, String dbProperty) {
 
-		Properties props = new Properties();
-		FileInputStream fis;
-		try {
-			fis = new FileInputStream("analyzer.properties");
-			props.load(fis);
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		String mongoHost = props.getProperty("mongo_host");
-		int mongoPort = Integer.parseInt(props.getProperty("mongo_port"));
-		String mongoUser = props.getProperty("mongo_user");
-		String mongoPasswd = props.getProperty("mongo_passwd");
-		String mongodb = props.getProperty(dbProperty);
-		MongoConnector mgc = new MongoConnector(mongoHost, mongoPort);
-		DB db = mgc.getDB(mongodb, mongoUser, mongoPasswd);
+	public DB getDB() {
 		return db;
-
-	}
-
-	public DB getDB(String dbname) {
-		return mongo.getDB(dbname);
 	}
 
 	public DB getDB(String dbname, String user, String passwd) {

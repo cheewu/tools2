@@ -6,16 +6,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.Logger;
+
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.zijiyou.mongo.MongoConnector;
+import com.zijiyou.text.correlation.Correlation;
 
 public class KeywrodQuery {
 	private static MongoConnector mgc = null;
 	private static Map<String, Integer> keywordCategoryMap = new HashMap<String, Integer>();
 	private static Map<String, String> keywordParentMap = new HashMap<String, String>();
 
+	private static final Logger LOG = Logger.getLogger(KeywrodQuery.class);
+	
 	public static Integer getKeywordCategory(String kw) {
 		if (keywordCategoryMap.size() == 0)
 			keywordCategoryMap = dumpKeywordCategoryMap("keywordMap");
@@ -125,9 +131,11 @@ public class KeywrodQuery {
 	}
 
 	private static Map<String, Integer> dumpKeywordCategoryMap(String collection) {
+		
+		LOG.info("Begin to dump keywordMap....");
 		MongoConnector mgc = new MongoConnector("analyzer.properties",
 				"mongo_tripfm");
-		DBCollection kw = mgc.db.getCollection(collection);
+		DBCollection kw = mgc.getDB().getCollection(collection);
 
 		DBCursor kwCur = kw.find();
 		Map<String, Integer> resultMap = new HashMap<String, Integer>();
@@ -144,12 +152,18 @@ public class KeywrodQuery {
 				if (category.matches("\\d*"))
 					resultMap.put(key,
 							Integer.parseInt(dbo.get("category").toString()));
-				else
+				else{
+					
+					Integer catint=Integer.parseInt(category.substring(0, category.length()-2));
+					LOG.error("Wrong category information..."+ dbo);
 					resultMap.put(key, 9999);
+					};
 			}
 		}
 
 		mgc.close();
+		LOG.info("KeywordDump finished ,dump size:"+ resultMap.size());
+		
 		return resultMap;
 
 	}
@@ -168,7 +182,7 @@ public class KeywrodQuery {
 	private static Map<String, String> dumpKeywordParentMap() {
 		MongoConnector mgc = new MongoConnector("analyzer.properties",
 				"mongo_tripfm");
-		DBCollection kw = mgc.db.getCollection("keyParentMap");
+		DBCollection kw = mgc.getDB().getCollection("keyParentMap");
 		DBCursor kwCur = kw.find();
 		Map<String, String> resultMap = new HashMap<String, String>();
 

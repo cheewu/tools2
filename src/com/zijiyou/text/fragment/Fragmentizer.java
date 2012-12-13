@@ -25,32 +25,18 @@ import com.mongodb.DBObject;
  * @date 2011-12-13
  */
 public class Fragmentizer {
-	
-	private static final Logger LOG = Logger.getLogger(Fragmentizer.class);
-	
-	public static void main(String[] args) {
-		
-		Properties props = new Properties();
-		FileInputStream fis;
-		try {
-			fis = new FileInputStream("analyzer.properties");
-			props.load(fis);
-		} catch (FileNotFoundException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
-		String mongoHost = props.getProperty("mongo_host");
-		int mongoPort = Integer.parseInt(props.getProperty("mongo_port"));
-		String mongoUser = props.getProperty("mongo_user");
-		String mongoPasswd = props.getProperty("mongo_passwd");
-		String mongoArticleDB = props.getProperty("mongo_article");
-		Properties hostProps=new Properties();
+	private static final Logger LOG = Logger.getLogger(Fragmentizer.class);
+
+	public static void main(String[] args) {
+
+		MongoConnector mgc = new MongoConnector("analyzer.properties",
+				"mongo_article");
+		DB db = mgc.getDB();
+
+		Properties hostProps = new Properties();
 		try {
-			fis = new FileInputStream("hostboost.properties");
+			FileInputStream fis = new FileInputStream("hostboost.properties");
 			hostProps.load(fis);
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
@@ -59,15 +45,19 @@ public class Fragmentizer {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		/**
-		 * Build connection to mongodb
-		 */
-		MongoConnector mgc=new MongoConnector(mongoHost,mongoPort);
-		DB db=mgc.getDB(mongoArticleDB,mongoUser ,mongoPasswd );
-		if(db==null){
-			LOG.error("Failed to connect to db "+ mongoArticleDB);
+
+		Properties props = new Properties();
+		try {
+			FileInputStream fis = new FileInputStream("analyzer.properties");
+			hostProps.load(fis);
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		
+
 		/**
 		 * 获得article列表
 		 */
@@ -80,31 +70,35 @@ public class Fragmentizer {
 		DBCollection wordCocurrences = db.getCollection("wordsCooccurence");
 		DBCollection keywordFragments = db.getCollection("keywordsParagraph");
 		LOG.info("All matched articles count:" + articleColl.count());
-		int i=0;
-		long begin=System.currentTimeMillis();
+		int i = 0;
+		long begin = System.currentTimeMillis();
 		while (articleCur.hasNext()) {
 			i++;
-			if(i%1000==0)
-				System.out.println(i+" documents finished,time used"+(System.currentTimeMillis()-begin)/1000+"s");
-			
-			
+			if (i % 1000 == 0)
+				System.out.println(i + " documents finished,time used"
+						+ (System.currentTimeMillis() - begin) / 1000 + "s");
+
 			DBObject document = articleCur.next();
-			String spiderName=document.get("spiderName")==null?"":document.get("spiderName").toString();
-			float hostBoost=1.0f;
+			String spiderName = document.get("spiderName") == null ? ""
+					: document.get("spiderName").toString();
+			float hostBoost = 1.0f;
 			if (hostProps.containsKey(spiderName))
-				hostBoost=Float.valueOf(hostProps.get(spiderName).toString().trim());
+				hostBoost = Float.valueOf(hostProps.get(spiderName).toString()
+						.trim());
 			else
-				LOG.error("Can't find boost value for spiderName:"+spiderName);
-		
-			//String title,String spiderName,String publishdate,
-			
-			String title=document.get("title")==null?"":document.get("title").toString();
-			String publishDate=document.get("publishDate")==null?"":document.get("publishDate").toString();
-			
+				LOG.error("Can't find boost value for spiderName:" + spiderName);
+
+			// String title,String spiderName,String publishdate,
+
+			String title = document.get("title") == null ? "" : document.get(
+					"title").toString();
+			String publishDate = document.get("publishDate") == null ? ""
+					: document.get("publishDate").toString();
+
 			DocumentAnalyzer doca = new DocumentAnalyzer(document.get("_id")
 					.toString(), document.get("content").toString(), document
-					.get("url").toString(),title,spiderName,
-					publishDate,hostBoost, props);
+					.get("url").toString(), title, spiderName, publishDate,
+					hostBoost, props);
 
 			doca.analyze();
 
@@ -133,9 +127,9 @@ public class Fragmentizer {
 					LOG.debug("Word Occurences:" + wordOccurrences.get(j));
 				}
 			}
-			
+
 		}
-		
+
 		mgc.close();
 
 	}

@@ -7,5 +7,7 @@
 	<classpathentry kind="lib" path="lib/lucene-core-3.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/mmseg4j-all-1.8.5-with-dic.jar"/>
 	<classpathentry kind="lib" path="lib/mongo-2.5.3.jar"/>
+	<classpathentry kind="lib" path="lib/sqlite-jdbc-3.7.2.jar"/>
+	<classpathentry kind="lib" path="lib/jcc-bate-0.7.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
